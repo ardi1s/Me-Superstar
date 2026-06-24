@@ -1,0 +1,22 @@
+# Binary
+agent-backend
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (contains secrets)
+config.yaml
