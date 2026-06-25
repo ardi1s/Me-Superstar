@@ -1,0 +1,18 @@
+# 测试环境配置 —— 测试使用的 MySQL 连接信息。
+# 请确保该数据库已创建，测试运行时会自动建表。
+server:
+  port: 8080
+
+database:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: ""
+  dbname: agent_backend_test
+  charset: utf8mb4
+  parseTime: true
+  loc: Local
+
+jwt:
+  secret: "test-secret-key"
+  expire_hours: 24

@@ -63,6 +63,23 @@ func LoadConfig() error {
 	return nil
 }
 
+// LoadConfigFile 从指定的 YAML 文件路径读取并解析配置（供测试使用）。
+func LoadConfigFile(path string) error {
+	v := viper.New()
+	v.SetConfigFile(path)
+
+	if err := v.ReadInConfig(); err != nil {
+		return fmt.Errorf("读取配置文件失败 (%s): %w", path, err)
+	}
+
+	AppConfig = &Config{}
+	if err := v.Unmarshal(AppConfig); err != nil {
+		return fmt.Errorf("解析配置文件失败: %w", err)
+	}
+
+	return nil
+}
+
 // DSN 生成 MySQL 连接字符串。
 func (d *DatabaseConfig) DSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=%t&loc=%s",

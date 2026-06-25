@@ -1,4 +1,6 @@
-// test 包包含 agent-backend 的集成测试，使用 SQLite 内存数据库，无需外部依赖即可运行。
+// test 包包含 agent-backend 的集成测试，使用真实 MySQL 数据库。
+// 运行前提：本地 MySQL 中已创建 agent_backend_test 库（见 config_test.yaml），
+// 测试启动时会自动建表，测试结束后会清理所有数据。
 // 测试覆盖：注册、登录、JWT 认证、健康检查、端口启动验证。
 package test
 
@@ -19,44 +21,48 @@ import (
 	"agent-backend/router"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	gormio "gorm.io/gorm"
 )
 
 // ---- 测试前后置 ----
 
-// TestMain 是整个测试套件的入口，负责初始化和清理。
+// TestMain 是整个测试套件的入口：加载配置 → 连接 MySQL → 自动迁移 → 运行测试 → 清理数据。
 func TestMain(m *testing.M) {
-	// 1. 注入测试配置（无需 config.yaml）
-	config.SetTestConfig(&config.Config{
-		Server: config.ServerConfig{Port: 8080},
-		Database: config.DatabaseConfig{
-			Host: "127.0.0.1", Port: 3306,
-			User: "test", Password: "test", DBName: "test",
-			Charset: "utf8mb4", ParseTime: true, Loc: "Local",
-		},
-		JWT: config.JWTConfig{
-			Secret:      "test-secret-key",
-			ExpireHours: 24,
-		},
-	})
+	// 1. 从 config_test.yaml 加载测试配置
+	config.LoadConfigFile("config_test.yaml")
 
-	// 2. 用 SQLite 内存数据库替代 MySQL（无需外部依赖，测试随时可跑）
-	db, err := gormio.Open(sqlite.Open(":memory:"), &gormio.Config{})
+	// 2. 连接 MySQL
+	dsn := config.AppConfig.Database.DSN()
+	db, err := gormio.Open(mysql.Open(dsn), &gormio.Config{})
 	if err != nil {
-		fmt.Printf("Failed to open SQLite: %v\n", err)
+		fmt.Printf("❌ 连接 MySQL 失败: %v\n", err)
+		fmt.Println("请确保 MySQL 已启动，且已创建 agent_backend_test 库")
 		os.Exit(1)
 	}
 	models.DB = db
 
-	// 3. 自动迁移
+	// 3. 自动迁移（创建测试表）
 	models.AutoMigrate()
 
 	// 4. 设 Gin 为测试模式（关闭调试日志）
 	gin.SetMode(gin.TestMode)
 
 	code := m.Run()
+
+	// 5. 测试结束后清空所有数据，便于下次重复运行
+	cleanAllTables()
+
 	os.Exit(code)
+}
+
+// cleanAllTables 清空测试数据库中的业务表，保留表结构。
+func cleanAllTables() {
+	models.DB.Exec("DELETE FROM work_daily_stats")
+	models.DB.Exec("DELETE FROM works")
+	models.DB.Exec("DELETE FROM accounts")
+	models.DB.Exec("DELETE FROM users")
+	fmt.Println("🧹 测试数据已清理")
 }
 
 // ---- 辅助函数 ----
