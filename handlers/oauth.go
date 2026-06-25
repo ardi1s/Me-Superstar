@@ -29,10 +29,12 @@ type stateClaims struct {
 const DouyinScope = "user_info,fans.list,video.list"
 
 // DouyinAuthRedirect 生成抖音 OAuth 授权链接并重定向。
-// 路由：GET /api/v1/auth/douyin（需 Bearer Token）
+// 支持两种认证方式：
+//   - Bearer Token（通过 JWT 中间件，c.Get("user_id")）
+//   - URL query 参数 ?token=xxx（供前端 window.open 使用，无法设 Header 时）
+//
+// 路由：GET /api/v1/auth/douyin
 func DouyinAuthRedirect(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-
 	cfg := config.AppConfig
 	if cfg.Douyin.ClientKey == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -42,8 +44,27 @@ func DouyinAuthRedirect(c *gin.Context) {
 		return
 	}
 
+	// 优先从 JWT 中间件取 user_id；若无（如未经过中间件），尝试从 ?token 参数解析
+	uid, exists := c.Get("user_id")
+	if !exists {
+		tokenStr := c.Query("token")
+		if tokenStr == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "缺少认证信息"})
+			return
+		}
+		claims := &Claims{}
+		parsed, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+			return []byte(cfg.JWT.Secret), nil
+		})
+		if err != nil || !parsed.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "token 无效"})
+			return
+		}
+		uid = claims.UserID
+	}
+
 	// 将 user_id 编码到 state 参数中，回调时解析以关联用户
-	state, err := generateStateToken(userID.(uint), cfg.JWT.Secret)
+	state, err := generateStateToken(uid.(uint), cfg.JWT.Secret)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,

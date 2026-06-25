@@ -26,6 +26,9 @@ func SetupRouter() *gin.Engine {
 			auth.POST("/register", handlers.Register)
 			auth.POST("/login", handlers.Login)
 
+			// 抖音 OAuth 授权跳转 —— 前端 window.open 用 ?token=xxx 传认证
+			auth.GET("/douyin", handlers.DouyinAuthRedirect)
+
 			// 抖音 OAuth 回调 —— 由抖音服务器回调，无法携带 JWT，
 			// 通过 state 参数编码 user_id 来关联用户。
 			auth.GET("/douyin/callback", handlers.DouyinCallback)
@@ -47,8 +50,11 @@ func SetupRouter() *gin.Engine {
 				})
 			})
 
-			// 抖音 OAuth 授权跳转 —— 需登录后点击，生成授权链接并重定向
-			protected.GET("/auth/douyin", handlers.DouyinAuthRedirect)
+			// 已授权账号列表
+			protected.GET("/accounts", handlers.ListAccounts)
+
+			// 作品涨粉排行榜
+			protected.GET("/works/top-fans", handlers.GetTopWorksByFans)
 		}
 	}
 

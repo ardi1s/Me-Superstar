@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作品涨粉排行榜</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+:root {
+  --blue: #007AFF;
+  --blue-light: #E8F2FF;
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --text: #1d1d1f;
+  --text2: #86868b;
+  --text3: #aeaeb2;
+  --sep: #d2d2d7;
+  --red: #ff3b30;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ====== 登录 ====== */
+.login-overlay {
+  position: fixed; inset: 0;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(245,245,247,0.72);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.login-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 48px 40px;
+  width: 400px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+.login-card .logo {
+  font-size: 40px; margin-bottom: 8px;
+}
+.login-card h2 {
+  font-size: 26px; font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.login-card .sub {
+  font-size: 14px; color: var(--text2);
+  margin-bottom: 28px;
+}
+.login-card .field {
+  text-align: left; margin-bottom: 16px;
+}
+.login-card .field label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: var(--text2); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.login-card input {
+  width: 100%; padding: 13px 16px;
+  border: 1.5px solid var(--sep); border-radius: var(--radius-sm);
+  font-size: 16px; outline: none; transition: border .2s;
+  font-family: inherit; background: #fafafa;
+}
+.login-card input:focus {
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--blue-light);
+}
+.login-card .err {
+  color: var(--red); font-size: 13px; margin-bottom: 12px;
+}
+.login-card .btn {
+  width: 100%; padding: 13px;
+  background: var(--blue); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: opacity .2s;
+  font-family: inherit;
+}
+.login-card .btn:hover { opacity: 0.88; }
+.login-card .btn:active { opacity: 0.72; }
+.login-card .switch {
+  margin-top: 16px; font-size: 14px; color: var(--text2);
+}
+.login-card .switch a {
+  color: var(--blue); cursor: pointer; text-decoration: none;
+}
+.login-card .switch a:hover { text-decoration: underline; }
+
+/* ====== 主布局 ====== */
+.app { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
+
+/* 导航栏 */
+.nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 36px;
+}
+.nav h1 {
+  font-size: 32px; font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.nav .user {
+  display: flex; align-items: center; gap: 16px;
+}
+.nav .user .avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; font-weight: 700;
+}
+.nav .user span {
+  font-size: 15px; color: var(--text2);
+}
+.nav .user button {
+  padding: 8px 18px;
+  background: var(--card); border: 1.5px solid var(--sep);
+  border-radius: 20px; font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--text2); transition: all .2s;
+  font-family: inherit;
+}
+.nav .user button:hover {
+  background: #f0f0f0; color: var(--text);
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+}
+.segmented {
+  display: flex;
+  background: #e5e5ea;
+  border-radius: 10px;
+  padding: 2px;
+}
+.segmented button {
+  padding: 9px 22px;
+  border: none; border-radius: 8px;
+  background: transparent;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; color: var(--text);
+  transition: all .25s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.segmented button.active {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 0 rgba(0,0,0,0.04);
+}
+.segmented button:not(.active):hover {
+  color: #000;
+}
+.account-select {
+  padding: 10px 14px;
+  border: 1.5px solid var(--sep);
+  border-radius: var(--radius-sm);
+  font-size: 14px; min-width: 220px;
+  background: var(--card); color: var(--text);
+  outline: none; cursor: pointer;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2386868b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 34px;
+}
+
+/* 卡片容器 */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* 表格 */
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left; padding: 14px 20px;
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  border-bottom: 1px solid var(--sep);
+  background: #fafafa;
+}
+td { padding: 14px 20px; border-bottom: 1px solid #f0f0f0; }
+tr:last-child td { border-bottom: none; }
+tr { transition: background .15s; }
+tr:hover td { background: #fafafa; }
+
+.cover-cell { width: 56px; }
+.cover-cell img {
+  width: 52px; height: 70px; object-fit: cover;
+  border-radius: 6px; background: #f0f0f0;
+  display: block;
+}
+.title-cell {
+  max-width: 360px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 500; font-size: 15px;
+}
+.date-cell {
+  font-size: 13px; color: var(--text2);
+  white-space: nowrap;
+}
+.num-cell {
+  font-size: 14px; color: var(--text2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fans-cell {
+  font-size: 16px; font-weight: 700;
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 状态 */
+.state {
+  text-align: center; padding: 72px 20px;
+}
+.state .icon { font-size: 48px; margin-bottom: 12px; }
+.state p { font-size: 15px; color: var(--text2); }
+.state .sub { font-size: 13px; color: var(--text3); margin-top: 4px; }
+
+.spinner {
+  width: 28px; height: 28px; margin: 0 auto 12px;
+  border: 3px solid #e5e5ea;
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 分页 */
+.pager {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 22px 0 0;
+}
+.pager button {
+  min-width: 40px; height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--sep);
+  border-radius: 8px; background: var(--card);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--text); transition: all .15s;
+  font-family: inherit;
+}
+.pager button:disabled {
+  opacity: 0.3; cursor: default;
+}
+.pager button:not(:disabled):hover {
+  background: #f0f0f0;
+}
+.pager button:not(:disabled):active {
+  background: #e5e5ea;
+}
+.pager .info {
+  font-size: 13px; color: var(--text2);
+  margin: 0 8px;
+}
+
+/* 响应式 */
+@media (max-width: 700px) {
+  .nav { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .account-select { width: 100%; }
+  th, td { padding: 12px 14px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ====== 登录 ====== -->
+<div class="login-overlay" v-if="!token">
+  <div class="login-card">
+    <div class="logo">📊</div>
+    <h2>{{ isRegister ? '创建账号' : '欢迎回来' }}</h2>
+    <p class="sub">{{ isRegister ? '注册后即可查看作品数据排行榜' : '登录以查看你的作品数据' }}</p>
+
+    <div class="field">
+      <label>用户名</label>
+      <input v-model="loginForm.username" placeholder="输入用户名" @keyup.enter="doAuth" autofocus>
+    </div>
+    <div class="field">
+      <label>密码</label>
+      <input v-model="loginForm.password" type="password" placeholder="输入密码" @keyup.enter="doAuth">
+    </div>
+
+    <p class="err" v-if="loginError">{{ loginError }}</p>
+
+    <button class="btn" @click="doAuth" :disabled="authLoading">
+      {{ authLoading ? '请稍候…' : (isRegister ? '注册' : '登录') }}
+    </button>
+
+    <p class="switch">
+      <a @click="toggleAuthMode">{{ isRegister ? '已有账号？去登录' : '没有账号？去注册' }}</a>
+    </p>
+  </div>
+</div>
+
+<!-- ====== 主界面 ====== -->
+<div class="app" v-if="token">
+  <!-- 导航 -->
+  <div class="nav">
+    <h1>📊 作品涨粉排行榜</h1>
+    <div class="user">
+      <div class="avatar">{{ (username||'U')[0].toUpperCase() }}</div>
+      <span>{{ username }}</span>
+      <button @click="logout">退出登录</button>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="segmented">
+      <button :class="{active:period==='1d'}"  @click="switchPeriod('1d')">昨日</button>
+      <button :class="{active:period==='7d'}"  @click="switchPeriod('7d')">近 7 天</button>
+      <button :class="{active:period==='30d'}" @click="switchPeriod('30d')">近 30 天</button>
+    </div>
+    <select class="account-select" v-model="selectedAccountID" @change="switchAccount">
+      <option value="0">全部账号</option>
+      <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
+        {{ acc.platform }} — {{ acc.platform_account_id }}
+      </option>
+    </select>
+  </div>
+
+  <!-- 表格 -->
+  <div class="card">
+    <!-- loading -->
+    <div class="state" v-if="loading">
+      <div class="spinner"></div>
+      <p>加载中…</p>
+    </div>
+
+    <!-- 空 -->
+    <div class="state" v-else-if="ranking.length===0">
+      <div class="icon">📭</div>
+      <p>暂无排行数据</p>
+      <p class="sub">完成抖音授权后，系统会自动同步作品数据</p>
+    </div>
+
+    <!-- 有数据 -->
+    <table v-else>
+      <thead>
+        <tr>
+          <th class="cover-cell"></th>
+          <th>作品</th>
+          <th>发布时间</th>
+          <th>播放量</th>
+          <th>涨粉</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in ranking" :key="item.work_id">
+          <td class="cover-cell">
+            <img :src="item.cover_url" :alt="item.title" @error="imgFallback">
+          </td>
+          <td class="title-cell" :title="item.title">{{ item.title || '(无标题)' }}</td>
+          <td class="date-cell">{{ fmtDate(item.publish_time) }}</td>
+          <td class="num-cell">{{ fmtNum(item.total_play_count) }}</td>
+          <td class="fans-cell">+{{ fmtNum(item.total_fans_added) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 分页 -->
+  <div class="pager" v-if="total > 0 && !loading">
+    <button :disabled="page<=1" @click="goPage(page-1)">← 上一页</button>
+    <span class="info">第 {{ page }} / {{ totalPages }} 页</span>
+    <button :disabled="page>=totalPages" @click="goPage(page+1)">下一页 →</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    // ---- 认证 ----
+    const token = ref(localStorage.getItem('token') || '');
+    const username = ref(localStorage.getItem('username') || '');
+    const isRegister = ref(false);
+    const loginForm = ref({ username: '', password: '' });
+    const loginError = ref('');
+    const authLoading = ref(false);
+
+    const toggleAuthMode = () => {
+      isRegister.value = !isRegister.value;
+      loginError.value = '';
+    };
+
+    const doAuth = async () => {
+      if (!loginForm.value.username || !loginForm.value.password) {
+        loginError.value = '请填写用户名和密码';
+        return;
+      }
+      authLoading.value = true;
+      loginError.value = '';
+      const path = isRegister.value ? '/api/v1/auth/register' : '/api/v1/auth/login';
+      try {
+        const res = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(loginForm.value),
+        });
+        const data = await res.json();
+        if (data.code !== 200) { loginError.value = data.message; authLoading.value = false; return; }
+        token.value = data.token;
+        username.value = loginForm.value.username;
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', loginForm.value.username);
+        authLoading.value = false;
+        await loadData();
+      } catch (e) {
+        loginError.value = '网络错误，请检查服务是否启动';
+        authLoading.value = false;
+      }
+    };
+
+    const logout = () => {
+      token.value = '';
+      username.value = '';
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      accounts.value = [];
+      ranking.value = [];
+    };
+
+    // ---- 数据状态 ----
+    const period = ref('7d');
+    const page = ref(1);
+    const total = ref(0);
+    const loading = ref(false);
+    const accounts = ref([]);
+    const selectedAccountID = ref(0);
+    const ranking = ref([]);
+    const pageSize = 20;
+
+    const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)));
+
+    // ---- 工具 ----
+    const apiHeaders = () => ({
+      'Authorization': 'Bearer ' + token.value,
+    });
+
+    const fmtNum = (n) => {
+      if (!n && n !== 0) return '0';
+      if (n >= 100000) return (n/10000).toFixed(1) + '万';
+      return Number(n).toLocaleString();
+    };
+
+    const fmtDate = (s) => {
+      if (!s) return '-';
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return '-';
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const imgFallback = (e) => {
+      e.target.src = 'data:image/svg+xml,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="52" height="70">' +
+        '<rect fill="#e5e5ea" width="52" height="70" rx="6"/>' +
+        '<text x="26" y="40" text-anchor="middle" fill="#aeaeb2" font-size="11" font-family="sans-serif">暂无</text>' +
+        '</svg>'
+      );
+    };
+
+    // ---- API 调用 ----
+    const fetchAccounts = async () => {
+      try {
+        const res = await fetch('/api/v1/accounts', { headers: apiHeaders() });
+        const data = await res.json();
+        if (data.code === 200) accounts.value = data.data || [];
+      } catch (e) { /* silent */ }
+    };
+
+    // 核心：请求排行榜数据，直接读取当前 ref 值
+    const fetchRanking = async () => {
+      loading.value = true;
+      try {
+        let url = '/api/v1/works/top-fans?period=' + period.value
+          + '&page=' + page.value
+          + '&page_size=' + pageSize;
+        if (selectedAccountID.value > 0) url += '&account_id=' + selectedAccountID.value;
+        const res = await fetch(url, { headers: apiHeaders() });
+        const data = await res.json();
+        if (data.code === 200 && data.data) {
+          ranking.value = data.data.items || [];
+          total.value = data.data.total || 0;
+        } else {
+          ranking.value = [];
+          total.value = 0;
+        }
+      } catch (e) {
+        ranking.value = [];
+        total.value = 0;
+      }
+      loading.value = false;
+    };
+
+    // ---- 交互：带状态重置再请求 ----
+    const switchPeriod = (p) => {
+      period.value = p;
+      page.value = 1;
+      fetchRanking();
+    };
+
+    const switchAccount = () => {
+      page.value = 1;
+      fetchRanking();
+    };
+
+    const goPage = (p) => {
+      if (p < 1 || p > totalPages.value) return;
+      page.value = p;
+      fetchRanking();
+    };
+
+    const loadData = async () => {
+      await Promise.all([fetchAccounts(), fetchRanking()]);
+    };
+
+    onMounted(() => {
+      if (token.value) loadData();
+    });
+
+    return {
+      token, username, isRegister, loginForm, loginError, authLoading,
+      toggleAuthMode, doAuth, logout,
+      period, page, total, totalPages, loading,
+      accounts, selectedAccountID, ranking,
+      switchPeriod, switchAccount, goPage,
+      fmtNum, fmtDate, imgFallback,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

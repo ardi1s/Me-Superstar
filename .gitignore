@@ -20,3 +20,7 @@ Thumbs.db
 
 # Config (contains secrets)
 config.yaml
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
