@@ -30,11 +30,19 @@ type JWTConfig struct {
 	ExpireHours int    `mapstructure:"expire_hours"` // Token 有效小时数
 }
 
+// DouyinConfig 抖音开放平台 OAuth 配置。
+type DouyinConfig struct {
+	ClientKey    string `mapstructure:"client_key"`    // 应用 Key（client_key）
+	ClientSecret string `mapstructure:"client_secret"` // 应用密钥（client_secret）
+	RedirectURI  string `mapstructure:"redirect_uri"`  // OAuth 回调地址
+}
+
 // Config 全局配置聚合结构体。
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
+	Douyin   DouyinConfig   `mapstructure:"douyin"`
 }
 
 // AppConfig 全局配置实例，在 LoadConfig 或 SetTestConfig 后可用。
